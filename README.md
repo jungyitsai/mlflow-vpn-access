@@ -12,7 +12,7 @@ This repository contains a Docker Compose setup for running an MLflow server tha
 
 ### 1. Clone the Repository
 ```bash
-git clone <repository-url>
+git clone https://github.com/jungyitsai/mlflow-vpn-access.git
 cd <repository-directory>
 ```
 
@@ -27,7 +27,7 @@ If needed, modify the `docker-compose.yml` file to fit your VPN setup.
 ### 3. Start the MLflow Service
 Run the following command to start the service:
 ```bash
-docker-compose up -d
+docker compose up -d
 ```
 
 ### 4. Verify Access
@@ -40,7 +40,7 @@ docker-compose up -d
 ### 5. Stop the MLflow Service
 To stop the service, run:
 ```bash
-docker-compose down
+docker compose down
 ```
 
 ## Security Notes

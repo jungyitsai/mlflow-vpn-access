@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  mlflow:
+    image: mlflow/mlflow:latest
+    container_name: mlflow
+    networks:
+      - internal_network
+    ports:
+      - "10.8.0.1:5000:5000" # 綁定到 VPN 的內網 IP
+    volumes:
+      - ./mlflow:/mlflow # 資料掛載目錄
+    environment:
+      - MLFLOW_TRACKING_URI=http://10.8.0.1:5000 # 設定 MLflow 跟蹤 URI
+
+networks:
+  internal_network:
+    driver: bridge

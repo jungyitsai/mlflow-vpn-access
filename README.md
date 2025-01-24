@@ -58,6 +58,7 @@ sudo ufw deny 5000
 - **Change IP Binding**: Edit the `ports` section in `docker-compose.yml` to use a different internal IP.
 - **Persist MLflow Data**: The `./mlflow` directory is mounted to store all data persistently.
 - **Expose Additional Ports**: If you need other services, add them to `docker-compose.yml`.
+- **Check volumn folder permission**
 
 ## License
 This project is licensed under the MIT License.

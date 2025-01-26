@@ -1,43 +1,66 @@
 services:
-  mlflow-server:
+  # PostgreSQL database
+  db:
+    image: postgres:latest
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: mlflowdb
+    ports:
+      - "10.0.0.1:5432:5432"
+    volumes:
+      - ./postgres-data:/var/lib/postgresql/data
+  # MinIO server
+  minio:
+    image: minio/minio
+    expose:
+      - "9000"
+    ports:
+      - "10.0.0.1:9000:9000"
+      # MinIO Console is available at http://localhost:9001
+      - "10.0.0.1:9001:9001"
+    environment:
+      MINIO_ROOT_USER: "minio_user"
+      MINIO_ROOT_PASSWORD: "minio_password"
+    healthcheck:
+      test: timeout 5s bash -c ':> /dev/tcp/127.0.0.1/9000' || exit 1
+      interval: 1s
+      timeout: 10s
+      retries: 5
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+  # Create a bucket named "bucket" if it doesn't exist
+  minio-create-bucket:
+    image: minio/mc
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      bash -c "
+      mc alias set minio http://10.0.0.1:9000 minio_user minio_password &&
+      if ! mc ls minio | grep --quiet bucket; then
+        mc mb minio/bucket
+      else
+        echo 'bucket already exists'
+      fi
+      "
+  mlflow-service:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: mlflow-server
-    networks:
-      - internal_network
+    environment:
+      - MLFLOW_S3_ENDPOINT_URL=http://10.0.0.1:9000
+      - AWS_ACCESS_KEY_ID=minio_user
+      - AWS_SECRET_ACCESS_KEY=minio_password
     ports:
-      - "10.8.0.1:5000:5000" # 綁定到 VPN 的內網 IP
-    volumes:
-      - ./mlflow:/mlflow # 資料掛載目錄
+      - "10.0.0.1:5000:5000"
     command: >
-      mlflow server --host 0.0.0.0 --port 5000 --backend-store-uri postgresql://postgres:password@db:5432/mlflow --default-artifact-root /mlflow/mlruns
-    environment:
-      - MLFLOW_TRACKING_URI=http://10.8.0.1:5000 # 設定 MLflow 跟蹤 URI
+      mlflow server --backend-store-uri postgresql://user:password@db:5432/mlflowdb --artifacts-destination s3://bucket --host 0.0.0.0 --port 5000
     depends_on:
-      db:
-        condition: service_healthy
+      - db
+      - minio
 
-  db:
-    image: postgres:16
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: mlflow
-    volumes:
-      - ./mlflow/db_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
-    healthcheck:
-      test: ["CMD", "pg_isready", "-U", "postgres"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    networks:
-      - internal_network
-
-      
-
-networks:
-  internal_network:
-    driver: bridge
+volumes:
+  postgres_data:
+  minio_data:

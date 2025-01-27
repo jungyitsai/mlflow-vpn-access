@@ -16,5 +16,14 @@ RUN pip install --no-cache-dir \
     psycopg2 \
     boto3
 
+# 將 artifact_repo.py 中的 encoding="utf-8" 修改為 encoding="big5"
+RUN sed -i 's/encoding="utf-8"/encoding="big5"/' \
+    $(python -c "import mlflow; import os; print(os.path.join(os.path.dirname(mlflow.__file__), 'store', 'artifact', 'artifact_repo.py'))")
+
+# 驗證修改是否成功（選擇性）
+RUN grep "open(trace_data_path, encoding=\"big5\")" \
+    $(python -c "import mlflow; import os; print(os.path.join(os.path.dirname(mlflow.__file__), 'store', 'artifact', 'artifact_repo.py'))")
+
+
 # 將容器的執行指令設為 /bin/bash
 CMD ["/bin/bash"]
